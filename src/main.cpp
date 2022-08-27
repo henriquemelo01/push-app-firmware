@@ -7,12 +7,13 @@
 #define PORTA_POTENCIOMETRO 15
 
 #define BLE_SERVICE_UUID "f8ab3678-b2b6-11ec-b909-0242ac120002"
+#define BLE_SERVICE_TEST_UUID "86f12c7f-1d2c-44a1-b1a6-30a264c15dc4"
 
 #define BLE_WEIGHT_CHARACTERISTIC_UUID "f8ab3a6a-b2b6-11ec-b909-0242ac120002" 
 #define BLE_VELOCITY_CHARACTERISTIC_UUID "9a3843fe-ed19-11ec-8ea0-0242ac120002"
 #define BLE_ACCELERATION_CHARACTERISTIC_UUID "d89f2437-86c0-4d8c-9c21-8a39e600827d"
 #define BLE_OFFSET_CHARACTERISTIC_UUID "cf4e2566-14a1-4d71-84ad-96eebd5b9bc3"
-#define BLE_FORCE_CHARACTERISTIC_UUID "e69526fa-8886-43da-a63a-25e8ed126b94"
+#define BLE_FORCE_CHARACTERISTIC_UUID "20abb7fa-52a0-486b-a5f1-91fe12236c3a"
 #define BLE_POWER_CHARACTERISTIC_UUID "69454f3f-f575-4f59-87dd-42ce3207ddbf"
 
 BLEServer *server = NULL;
@@ -65,51 +66,54 @@ void setup() {
   BLEServer *server = BLEDevice::createServer();
   server -> setCallbacks(new ServerCallbacks());
 
-  BLEService *service = server -> createService(BLE_SERVICE_UUID);
-
-  // WeightCharacteristic
-  weightCharacteristic = service -> createCharacteristic(
-    BLE_WEIGHT_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_NOTIFY
-  );
-  weightCharacteristic -> addDescriptor(new BLE2902());
+  BLEService *firstWorkoutBleService = server -> createService(BLE_SERVICE_UUID);
+  BLEService *secondWorkoutBleService = server -> createService(BLE_SERVICE_TEST_UUID);
 
   // VelocityCharacteristic
-  velocityCharacteristic = service -> createCharacteristic(
+  velocityCharacteristic = firstWorkoutBleService -> createCharacteristic(
     BLE_VELOCITY_CHARACTERISTIC_UUID,
     BLECharacteristic::PROPERTY_NOTIFY
   );
   velocityCharacteristic -> addDescriptor(new BLE2902());
 
-  // AccelerationCharacteristic
-  accelerationCharacteristic = service -> createCharacteristic(
-    BLE_ACCELERATION_CHARACTERISTIC_UUID,
+  // WeightCharacteristic
+  weightCharacteristic = firstWorkoutBleService -> createCharacteristic(
+    BLE_WEIGHT_CHARACTERISTIC_UUID,
     BLECharacteristic::PROPERTY_NOTIFY
   );
-  accelerationCharacteristic -> addDescriptor(new BLE2902());
+  weightCharacteristic -> addDescriptor(new BLE2902());
 
   // OffsetCharacteristic
-  offsetCharacteristic = service -> createCharacteristic(
+  offsetCharacteristic = firstWorkoutBleService -> createCharacteristic(
     BLE_OFFSET_CHARACTERISTIC_UUID,
     BLECharacteristic::PROPERTY_NOTIFY
   );
   offsetCharacteristic -> addDescriptor(new BLE2902());
 
-  //ForceCharacteristic
-  forceCharacteristic = service -> createCharacteristic(
+  // AccelerationCharacteristic
+  accelerationCharacteristic = secondWorkoutBleService -> createCharacteristic(
+    BLE_ACCELERATION_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_NOTIFY
+  );
+  accelerationCharacteristic -> addDescriptor(new BLE2902());
+
+  // ForceCharacteristic
+  forceCharacteristic = secondWorkoutBleService -> createCharacteristic(
     BLE_FORCE_CHARACTERISTIC_UUID,
     BLECharacteristic::PROPERTY_NOTIFY
   );
   forceCharacteristic -> addDescriptor(new BLE2902());
 
-  //PowerCharacteristic
-  powerCharacteristic = service -> createCharacteristic(
+  // PowerCharacteristic
+  powerCharacteristic = firstWorkoutBleService -> createCharacteristic(
     BLE_POWER_CHARACTERISTIC_UUID,
     BLECharacteristic::PROPERTY_NOTIFY
   );
   powerCharacteristic -> addDescriptor(new BLE2902());
 
-  service -> start();
+  firstWorkoutBleService -> start();
+  secondWorkoutBleService -> start();
+
   server -> getAdvertising() -> start();
 }
 
@@ -138,6 +142,15 @@ void loop() {
     velocityCharacteristic -> setValue(velocity_data);
     velocityCharacteristic -> notify();
 
+    // Envio da Potencia no BLE -> Valor do tipo Int
+    int dummyPower = valor_mapeado * 4;
+
+    char powerData[8];
+    dtostrf(dummyPower, 3, 0, powerData);
+
+    powerCharacteristic -> setValue(powerData);
+    powerCharacteristic -> notify();
+
     // Envio da Aceleração no BLE -> Valor do tipo float
     float dummyAcceleration = valor_mapeado * 0.01;
 
@@ -151,23 +164,14 @@ void loop() {
     offsetCharacteristic -> setValue(sensor_data); // Estou enviando os dados do potenciometro para teste
     offsetCharacteristic -> notify();
 
-    // Envio da Força no BLE -> Valor do tipo Int
-    float dummyForce = valor_mapeado * 2;
+    // Envio da Força no BLE -> Valor do tipo int
+    int dummyForce = valor_mapeado * 2;
 
     char forceData[8];
     dtostrf(dummyForce, 3, 0, forceData);
 
     forceCharacteristic -> setValue(forceData);
     forceCharacteristic -> notify();
-
-    // Envio da Potência no BLE -> Valor do tipo Int
-    float dummyPower = valor_mapeado * 5;
-    
-    char powerData[8];
-    dtostrf(dummyPower, 3, 0, powerData);
-
-    powerCharacteristic -> setValue(powerData);
-    powerCharacteristic -> notify();
   }
 
   delay(500);
